@@ -1,0 +1,39 @@
+name: Sigma Rules Validation
+on:
+  pull_request:
+    paths: ['sigma-rules/**']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install sigma-cli
+        run: pip install sigma-cli
+      
+      - name: Validate Sigma rules
+        run: |
+          for f in sigma-rules/**/*.yml; do
+            echo "Validating: $f"
+            sigma check "$f"
+          done
+      
+      - name: Convert to Splunk SPL
+        run: |
+          for f in sigma-rules/**/*.yml; do
+            sigma convert -t splunk "$f" || exit 1
+            echo "✅ $f"
+          done
+      
+      - name: Check for hardcoded credentials
+        run: |
+          if grep -rn 'api_key\|password\|secret\|token' sigma-rules/ playbooks/; then
+            echo '❌ Found potential hardcoded credentials!'
+            exit 1
+          fi
