@@ -1,0 +1,73 @@
+{
+  "type": "playbook",
+  "spec_version": "cacao-2.0",
+  "id": "playbook--suspicious-login-response",
+  "name": "Suspicious Login Response",
+  "description": "Automated response for suspicious login alerts detected by Sigma rules",
+  "playbook_types": [
+    "investigation",
+    "mitigation"
+  ],
+  "created_by": "Takahiro Oda",
+  "created": "2026-03-15T00:00:00Z",
+  "workflow_start": "start--enrich-ip",
+  "workflow": {
+    "start--enrich-ip": {
+      "type": "start",
+      "on_completion": "action--check-reputation"
+    },
+    "action--check-reputation": {
+      "type": "action",
+      "name": "Check IP Reputation",
+      "commands": [
+        {
+          "type": "http-api",
+          "command": "GET https://api.abuseipdb.com/api/v2/check"
+        }
+      ],
+      "on_completion": "decision--threat-level"
+    },
+    "decision--threat-level": {
+      "type": "if-condition",
+      "condition": "threat_score > 70",
+      "on_true": "action--block-ip",
+      "on_false": "action--create-ticket"
+    },
+    "action--block-ip": {
+      "type": "action",
+      "name": "Block IP in WAF",
+      "commands": [
+        {
+          "type": "http-api",
+          "command": "PUT /waf/ip-block"
+        }
+      ],
+      "on_completion": "action--notify-slack"
+    },
+    "action--create-ticket": {
+      "type": "action",
+      "name": "Create Jira Ticket",
+      "commands": [
+        {
+          "type": "http-api",
+          "command": "POST /jira/issue"
+        }
+      ],
+      "on_completion": "action--notify-slack"
+    },
+    "action--notify-slack": {
+      "type": "action",
+      "name": "Send Slack Notification",
+      "commands": [
+        {
+          "type": "http-api",
+          "command": "POST /slack/webhook"
+        }
+      ],
+      "on_completion": "end--done"
+    },
+    "end--done": {
+      "type": "end"
+    }
+  }
+}
