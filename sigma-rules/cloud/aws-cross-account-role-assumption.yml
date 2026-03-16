@@ -1,0 +1,27 @@
+title: Suspicious Cross-Account IAM Role Assumption
+id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+status: experimental
+description: |
+  Detects IAM role assumptions from accounts
+  not in the known allowlist
+author: Takahiro Oda
+date: 2026/03/15
+logsource:
+    product: aws
+    service: cloudtrail
+detection:
+    selection:
+        eventName: AssumeRole
+        eventSource: sts.amazonaws.com
+    filter_known:
+        requestParameters.roleArn|contains:
+            - 'arn:aws:iam::known-account-1'
+            - 'arn:aws:iam::known-account-2'
+    condition: selection and not filter_known
+falsepositives:
+    - Legitimate cross-account access from new accounts
+    - CI/CD pipelines using temporary roles
+level: medium
+tags:
+    - attack.credential_access
+    - attack.t1078.004
