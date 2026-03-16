@@ -1,0 +1,29 @@
+title: EDR Agent Service Stopped
+id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+status: experimental
+description: |
+  Detects attempts to stop or disable EDR
+  agent services on endpoints
+author: Takahiro Oda
+date: 2026/03/15
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_cmd:
+        CommandLine|contains:
+            - 'sc stop'
+            - 'net stop'
+    selection_target:
+        CommandLine|contains:
+            - 'CSFalconService'
+            - 'WazuhSvc'
+            - 'MsMpSvc'
+    condition: selection_cmd and selection_target
+falsepositives:
+    - Legitimate maintenance windows
+    - Authorized agent upgrades
+level: high
+tags:
+    - attack.defense_evasion
+    - attack.t1562.001
